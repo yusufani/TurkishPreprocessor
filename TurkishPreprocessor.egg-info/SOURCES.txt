@@ -1,9 +1,0 @@
-LICENSE
-README.md
-setup.py
-TurkishPreprocessor/Preprocessor.py
-TurkishPreprocessor/__init__.py
-TurkishPreprocessor.egg-info/PKG-INFO
-TurkishPreprocessor.egg-info/SOURCES.txt
-TurkishPreprocessor.egg-info/dependency_links.txt
-TurkishPreprocessor.egg-info/top_level.txt
