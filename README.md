@@ -8,6 +8,6 @@ pip install TurkishPreprocessor
 ```
 
 Usage : 
-'''
+```
     from TurkishPreprocessor.Preprocessor import Preprocessor
-'''
+```
