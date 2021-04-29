@@ -1,6 +1,8 @@
 # Yazar : Yusuf ANI
 import re
 from turkish.deasciifier import Deasciifier
+import multiprocessing
+import threading
 
 import nltk
 import logging
@@ -9,10 +11,11 @@ import logging
 # Source : https://towardsdatascience.com/text-normalization-7ecc8e084e31
 class Preprocessor:
     def __init__(self, processors="all", deleted_processors=False, additional_processors=None, dont_print=False):
-
+        log = logging.getLogger()
         if dont_print:
-            log = logging.getLogger()
             log.setLevel(logging.ERROR)
+        else:
+            log.setLevel(logging.INFO)
 
         main_processors = ["delete_hyperlinks", "simplify_punctuation", "normalize_whitespace", "correct_letters",
                            "clear_stop_words"]
@@ -45,55 +48,83 @@ class Preprocessor:
             print(i)
         print(50 * "*")
 
-    def preprocess_text(self, text):
-        if type(text) == float and str(text) == "nan": return None
+    def preprocess_texts(self, text_list):
+        '''
+        List of texts for processing 
+        '''
+        n_threads = multiprocessing.cpu_count()
+        logging.info("Number of threads will executed: "+ str(n_threads))
+        self.text_list = text_list
+        threads = []
+        for idx, val in enumerate(text_list):
+            threads.append(threading.Thread(target=self.preprocess_text, args=(val, idx,)))
+            if (idx + 1) % n_threads == 0 or idx == len(text_list) - 1:
+                print("girdi ", idx)
+                for i in threads: i.start()
+                for i in threads: i.join()
+                threads = []
+
+        return text_list
+
+    def preprocess_text(self, text, idx=-1):
+
+        if type(text) == float and str(text) == "nan":
+            if idx != -1:  # Multi thread
+                self.text_list[idx] = None
+                return
+            else:
+                return None
 
         if "lower_text" in self.selected_processors:
             logging.info("Text is lowering...")
             text = self.lower_text(text)
-            logging.info("Text is lowered")
+            logging.info("Input Text: " + text + "\n Output Text:" + text + "\nText is lowered")
         if "delete_hyperlinks" in self.selected_processors:
             logging.info("Hyperlinks are deleting...")
             text = self.delete_hyperlinks(text)
-            logging.info("Hyperlinks are deleted")
+            logging.info("Input Text: " + text + "\n Output Text:" + text + "\nHyperlinks are deleted")
         if "delete_numeric_values" in self.selected_processors:
             logging.info("Numeric values are deleting...")
             text = self.delete_numeric_values(text)
-            logging.info("Numeric values are deleted")
-
+            logging.info("Input Text: " + text + "\n Output Text:" + text + "\nNumeric values are deleted")
         if "simplify_punctuation" in self.selected_processors:
             logging.info("Punctuation is correcting...")
             text = self.simplify_punctuation(text)
-            logging.info("Punctuation is corrected")
+            logging.info("Input Text: " + text + "\n Output Text:" + text + "\nPunctuation is corrected")
         if "normalize_whitespace" in self.selected_processors:
             logging.info("Whitespace is normalizing...")
             text = self.normalize_whitespace(text)
-            logging.info("Whitespace is normalized")
+            logging.info("Input Text: " + text + "\n Output Text:" + text + "\nWhitespace is normalized")
         if "clear_stop_words" in self.selected_processors:
             logging.info("Stop Words is clearing...")
             text = self.clear_stop_words(text)
-            logging.info("Stop Words is cleared...")
+            logging.info("Input Text: " + text + "\n Output Text:" + text + "\nStop Words is cleared...")
         if "delete_ordered_hashtag_usernames" in self.selected_processors:
             logging.info("Deleting Ordered hashtag&usernames...")
             text = self.delete_ordered_hashtag_usernames(text)
-            logging.info("Deleted Ordered hashtag&usernames...")
+            logging.info("Input Text: " + text + "\n Output Text:" + text + "\nDeleted Ordered hashtag&usernames...")
         if "replace_ampersand" in self.selected_processors:
             logging.info("Ampersand fixing...")
             text = self.replace_ampersand(text)
-            logging.info("Ampersand fixed...")
+            logging.info("Input Text: " + text + "\n Output Text:" + text + "\nAmpersand fixed...")
         if "correct_letters" in self.selected_processors:
             logging.info("Letters correcting...")
             text = self.correct_letters(text)
-            logging.info("Letters corrected...")
+            logging.info("Input Text: " + text + "\n Output Text:" + text + "\nLetters corrected...")
         if "delete_short_texts" in self.selected_processors:
             logging.info("Deleting short texts...")
             text = self.delete_short_texts(text)
-            logging.info("Deleted short texts...")
+            logging.info("Input Text: " + text + "\n Output Text:" + text + "\nDeleted short texts...")
         if "lemmatization" in self.selected_processors:
             logging.info("words Lemmatizing...")
             text = self.lemmatization(text)
-            logging.info("Words lemmatized")
-        return text.strip()
+            logging.info("Input Text: " + text + "\n Output Text:" + text + "\nWords lemmatized")
+
+        if idx != -1:  # Multi thread
+            self.text_list[idx] = text.strip()
+            return
+        else:
+            return text.strip()
 
     @staticmethod
     def lemmatization(text):
@@ -115,8 +146,10 @@ class Preprocessor:
         This function simplifies doubled or more complex punctuation. The exception is '...'.
         """
         corrected = str(text)
-        corrected = re.sub(r'([!?,;])\1+', r'\1', corrected)
+        corrected = re.sub(r'([!?,;:])\1+', r'\1', corrected)
         corrected = re.sub(r'\.{2,}', r'...', corrected)
+        corrected = re.sub(r'\s([?.!:"](?:\s|$))', r'\1', corrected) # Delete space before punctuation
+
         return corrected
 
     @staticmethod

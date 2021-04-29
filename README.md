@@ -9,5 +9,5 @@ pip install TurkishPreprocessor
 
 Usage : 
 ```
-    from TurkishPreprocessor.Preprocessor import Preprocessor
+from TurkishPreprocessor.Preprocessor import Preprocessor
 ```
