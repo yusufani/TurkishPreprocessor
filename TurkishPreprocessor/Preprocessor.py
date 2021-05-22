@@ -3,7 +3,7 @@ import re
 from turkish.deasciifier import Deasciifier
 import multiprocessing
 import threading
-
+from tqdm import tqdm
 import nltk
 import logging
 
@@ -56,10 +56,9 @@ class Preprocessor:
         logging.info("Number of threads will executed: "+ str(n_threads))
         self.text_list = text_list
         threads = []
-        for idx, val in enumerate(text_list):
+        for idx, val in tqdm(enumerate(text_list)):
             threads.append(threading.Thread(target=self.preprocess_text, args=(val, idx,)))
             if (idx + 1) % n_threads == 0 or idx == len(text_list) - 1:
-                print("girdi ", idx)
                 for i in threads: i.start()
                 for i in threads: i.join()
                 threads = []
